@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, Suspense } from "react";
+import { useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { extractWaveform, waveformToSVGPath } from "@/lib/waveform";
 import { MATERIALS, type MaterialKey } from "@/lib/stripe";
 
-type ProductType = "soundwave" | "coordinates" | "cityscape";
+type ProductType = "soundwave";
 type JewelryType = "pendant" | "bracelet" | "ring";
 
 const PRODUCT_TYPES: {
@@ -17,16 +17,6 @@ const PRODUCT_TYPES: {
     key: "soundwave",
     label: "Soundwave",
     description: "Upload audio to create a unique waveform design",
-  },
-  {
-    key: "coordinates",
-    label: "Coordinates",
-    description: "Enter the coordinates of a meaningful place",
-  },
-  {
-    key: "cityscape",
-    label: "Cityscape",
-    description: "Choose a city skyline for your piece",
   },
 ];
 
@@ -44,19 +34,6 @@ const JEWELRY_TYPES: {
   { key: "ring", label: "Ring", sizes: ["5", "6", "7", "8", "9", "10", "11"] },
 ];
 
-const CITIES = [
-  "New York",
-  "San Francisco",
-  "Chicago",
-  "London",
-  "Paris",
-  "Tokyo",
-  "Sydney",
-  "Dubai",
-  "Toronto",
-  "Barcelona",
-];
-
 function CreatePageInner() {
   const searchParams = useSearchParams();
   const initialType = (searchParams.get("type") as ProductType) || null;
@@ -71,42 +48,10 @@ function CreatePageInner() {
   const [email, setEmail] = useState("");
   const [waveform, setWaveform] = useState<number[] | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [coordinates, setCoordinates] = useState({ lat: "", lng: "" });
-  const [city, setCity] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Generate a placeholder waveform for coordinates/cityscape
-  const generatePlaceholderWaveform = useCallback(
-    (seed: string): number[] => {
-      const data: number[] = [];
-      for (let i = 0; i < 200; i++) {
-        const charCode = seed.charCodeAt(i % seed.length) || 50;
-        data.push(
-          (Math.sin(i * 0.15 + charCode * 0.1) * 0.4 +
-            Math.cos(i * 0.08 + charCode * 0.05) * 0.3 +
-            0.5) *
-            0.8
-        );
-      }
-      const max = Math.max(...data);
-      return data.map((v) => v / (max || 1));
-    },
-    []
-  );
-
-  // Update waveform when coordinates or city changes
-  useEffect(() => {
-    if (productType === "coordinates" && coordinates.lat && coordinates.lng) {
-      setWaveform(
-        generatePlaceholderWaveform(`${coordinates.lat},${coordinates.lng}`)
-      );
-    } else if (productType === "cityscape" && city) {
-      setWaveform(generatePlaceholderWaveform(city));
-    }
-  }, [productType, coordinates, city, generatePlaceholderWaveform]);
 
   const handleAudioUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -148,18 +93,6 @@ function CreatePageInner() {
         formData.append("waveform", JSON.stringify(waveform));
       }
 
-      if (productType === "coordinates") {
-        formData.append(
-          "product_data",
-          JSON.stringify({
-            lat: coordinates.lat,
-            lng: coordinates.lng,
-          })
-        );
-      } else if (productType === "cityscape") {
-        formData.append("product_data", JSON.stringify({ city }));
-      }
-
       if (audioFile) {
         formData.append("audio", audioFile);
       }
@@ -193,7 +126,7 @@ function CreatePageInner() {
     : null;
 
   const svgPath =
-    waveform && waveformToSVGPath(waveform, 800, 200);
+    waveform && waveformToSVGPath(waveform, 200, 80);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16 lg:px-8 lg:py-24">
@@ -275,103 +208,42 @@ function CreatePageInner() {
           {step === 2 && (
             <div className="animate-fade-up">
               <h2 className="font-serif text-2xl">
-                {productType === "soundwave" && "Upload Your Sound"}
-                {productType === "coordinates" && "Enter Your Coordinates"}
-                {productType === "cityscape" && "Choose Your City"}
+                Upload Your Sound
               </h2>
 
               <div className="mt-8">
-                {productType === "soundwave" && (
-                  <div>
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-700 p-12 transition-colors hover:border-amber-200/30"
+                <div>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-700 p-12 transition-colors hover:border-amber-200/30"
+                  >
+                    <svg
+                      className="h-10 w-10 text-stone-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
                     >
-                      <svg
-                        className="h-10 w-10 text-stone-600"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={1.5}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H14.25M12 2.25v12m0 0l-3-3m3 3l3-3"
-                        />
-                      </svg>
-                      <p className="mt-4 text-sm text-stone-400">
-                        {audioFile
-                          ? audioFile.name
-                          : "Click to upload audio (MP3, WAV, M4A)"}
-                      </p>
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleAudioUpload}
-                      className="hidden"
-                    />
-                  </div>
-                )}
-
-                {productType === "coordinates" && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="mb-2 block text-sm text-stone-400">
-                        Latitude
-                      </label>
-                      <input
-                        type="text"
-                        value={coordinates.lat}
-                        onChange={(e) =>
-                          setCoordinates((c) => ({
-                            ...c,
-                            lat: e.target.value,
-                          }))
-                        }
-                        placeholder="e.g. 40.7128"
-                        className="w-full rounded-lg border border-stone-700 bg-stone-900 px-4 py-3 text-stone-100 placeholder-stone-600 focus:border-amber-200/50 focus:outline-none"
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H14.25M12 2.25v12m0 0l-3-3m3 3l3-3"
                       />
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm text-stone-400">
-                        Longitude
-                      </label>
-                      <input
-                        type="text"
-                        value={coordinates.lng}
-                        onChange={(e) =>
-                          setCoordinates((c) => ({
-                            ...c,
-                            lng: e.target.value,
-                          }))
-                        }
-                        placeholder="e.g. -74.0060"
-                        className="w-full rounded-lg border border-stone-700 bg-stone-900 px-4 py-3 text-stone-100 placeholder-stone-600 focus:border-amber-200/50 focus:outline-none"
-                      />
-                    </div>
+                    </svg>
+                    <p className="mt-4 text-sm text-stone-400">
+                      {audioFile
+                        ? audioFile.name
+                        : "Click to upload audio (MP3, WAV, M4A)"}
+                    </p>
                   </div>
-                )}
-
-                {productType === "cityscape" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    {CITIES.map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => setCity(c)}
-                        className={`rounded-lg border p-4 text-left text-sm transition-all ${
-                          city === c
-                            ? "border-amber-200/50 bg-amber-200/5 text-amber-200"
-                            : "border-stone-800 text-stone-400 hover:border-stone-700"
-                        }`}
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleAudioUpload}
+                    className="hidden"
+                  />
+                </div>
               </div>
 
               <div className="mt-8 flex gap-4">
@@ -383,17 +255,11 @@ function CreatePageInner() {
                 </button>
                 <button
                   onClick={() => {
-                    if (
-                      (productType === "soundwave" && waveform) ||
-                      (productType === "coordinates" &&
-                        coordinates.lat &&
-                        coordinates.lng) ||
-                      (productType === "cityscape" && city)
-                    ) {
+                    if (waveform) {
                       setStep(3);
                     } else {
                       setError(
-                        "Please complete this step before continuing."
+                        "Please upload an audio file before continuing."
                       );
                     }
                   }}
@@ -602,26 +468,21 @@ function CreatePageInner() {
                 {/* Waveform overlay */}
                 {svgPath ? (
                   <svg
-                    viewBox="0 0 800 200"
-                    className="relative z-10 w-48 animate-shimmer text-amber-200"
+                    viewBox="0 0 200 80"
+                    preserveAspectRatio="xMidYMid meet"
+                    className="relative z-10 w-40 h-16 animate-shimmer text-amber-200"
                   >
                     <path
                       d={svgPath}
                       stroke="currentColor"
-                      strokeWidth="3"
+                      strokeWidth="2"
                       strokeLinecap="round"
                       fill="none"
                     />
                   </svg>
                 ) : (
                   <p className="relative z-10 text-center text-xs text-stone-600">
-                    {productType === "soundwave"
-                      ? "Upload audio to see your waveform"
-                      : productType === "coordinates"
-                        ? "Enter coordinates to see preview"
-                        : productType === "cityscape"
-                          ? "Choose a city to see preview"
-                          : "Select a product type to begin"}
+                    Upload audio to see your waveform
                   </p>
                 )}
               </div>

@@ -73,6 +73,9 @@ export async function POST(request: NextRequest) {
     const session = await getStripe().checkout.sessions.create({
       mode: "payment",
       customer_email: email,
+      shipping_address_collection: {
+        allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'JP', 'SG', 'NZ'],
+      },
       line_items: [
         {
           price_data: {

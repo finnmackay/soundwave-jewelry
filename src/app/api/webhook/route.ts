@@ -35,10 +35,25 @@ export async function POST(request: NextRequest) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
 
+      // Extract shipping address from session
+      const shipping = (session as any).shipping_details;
+      const shippingAddress = shipping ? {
+        name: shipping.name,
+        line1: shipping.address?.line1,
+        line2: shipping.address?.line2,
+        city: shipping.address?.city,
+        state: shipping.address?.state,
+        postal_code: shipping.address?.postal_code,
+        country: shipping.address?.country,
+      } : null;
+
       // Update order status in Supabase
       const { error: updateError } = await getSupabase()
         .from("orders")
-        .update({ status: "paid" })
+        .update({ 
+          status: "paid",
+          shipping_address: shippingAddress,
+        })
         .eq("stripe_session_id", session.id);
 
       if (updateError) {
@@ -59,6 +74,7 @@ export async function POST(request: NextRequest) {
             status: "paid",
             audio_url: null,
             waveform_svg: null,
+            shipping_address: shippingAddress,
           });
 
           if (insertError) {

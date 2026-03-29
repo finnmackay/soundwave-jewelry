@@ -42,7 +42,7 @@ export default function Home() {
         <div className="relative mx-auto max-w-7xl px-6 py-32 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <p className="animate-fade-up text-sm font-medium uppercase tracking-[0.3em] text-amber-300/80">
-              Grounded Sound
+              Your Sound, Eternal
             </p>
             <h1 className="animate-fade-up-delay-1 mt-6 font-serif text-5xl leading-tight tracking-tight sm:text-6xl lg:text-7xl">
               Turn your most meaningful sounds into{" "}
