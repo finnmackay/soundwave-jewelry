@@ -4,6 +4,15 @@ import { useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { extractWaveform, waveformToSVGPath } from "@/lib/waveform";
 import { MATERIALS, type MaterialKey } from "@/lib/stripe";
+import { SpotlightCard, GradientText } from "@/components";
+import {
+  Upload,
+  Music,
+  Check,
+  ChevronRight,
+  Loader2,
+  Volume2,
+} from "lucide-react";
 
 type ProductType = "soundwave";
 type JewelryType = "pendant" | "bracelet" | "ring";
@@ -12,11 +21,13 @@ const PRODUCT_TYPES: {
   key: ProductType;
   label: string;
   description: string;
+  icon: React.ReactNode;
 }[] = [
   {
     key: "soundwave",
     label: "Soundwave",
     description: "Upload audio to create a unique waveform design",
+    icon: <Music className="h-6 w-6" />,
   },
 ];
 
@@ -24,14 +35,26 @@ const JEWELRY_TYPES: {
   key: JewelryType;
   label: string;
   sizes: string[];
+  description: string;
 }[] = [
-  { key: "pendant", label: "Pendant", sizes: ["Small", "Medium", "Large"] },
+  {
+    key: "pendant",
+    label: "Pendant",
+    sizes: ["Small", "Medium", "Large"],
+    description: "Wear close to your heart",
+  },
   {
     key: "bracelet",
     label: "Bracelet",
     sizes: ['6"', '6.5"', '7"', '7.5"', '8"'],
+    description: "Wrap your story around your wrist",
   },
-  { key: "ring", label: "Ring", sizes: ["5", "6", "7", "8", "9", "10", "11"] },
+  {
+    key: "ring",
+    label: "Ring",
+    sizes: ["5", "6", "7", "8", "9", "10", "11"],
+    description: "Carry your moment always",
+  },
 ];
 
 function CreatePageInner() {
@@ -49,6 +72,7 @@ function CreatePageInner() {
   const [waveform, setWaveform] = useState<number[] | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +85,7 @@ function CreatePageInner() {
 
     setAudioFile(file);
     setError(null);
+    setIsProcessing(true);
 
     try {
       const data = await extractWaveform(file, 200);
@@ -69,6 +94,8 @@ function CreatePageInner() {
       setError(
         "Could not process audio file. Please try a different format (MP3, WAV, M4A)."
       );
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -113,7 +140,9 @@ function CreatePageInner() {
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Something went wrong. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -125,8 +154,17 @@ function CreatePageInner() {
     ? JEWELRY_TYPES.find((j) => j.key === jewelryType)
     : null;
 
-  const svgPath =
-    waveform && waveformToSVGPath(waveform, 200, 80);
+  const svgPath = waveform && waveformToSVGPath(waveform, 200, 80);
+
+  const getMaterialColor = (key: MaterialKey) => {
+    const colors: Record<string, string> = {
+      stainless_steel: "from-gray-400 to-gray-600",
+      sterling_silver: "from-gray-200 to-gray-400",
+      brass: "from-yellow-600 to-yellow-800",
+      bronze: "from-orange-600 to-orange-800",
+    };
+    return colors[key] || "from-stone-400 to-stone-600";
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-16 lg:px-8 lg:py-24">
@@ -135,14 +173,14 @@ function CreatePageInner() {
           Design Studio
         </p>
         <h1 className="mt-4 font-serif text-4xl sm:text-5xl">
-          Create Your Piece
+          Create Your <GradientText>Masterpiece</GradientText>
         </h1>
         <p className="mt-4 text-stone-500">
           Follow the steps below to design your one-of-a-kind jewelry.
         </p>
       </div>
 
-      {/* Progress Steps */}
+      {/* Progress Steps - Enhanced */}
       <div className="mt-12 flex items-center justify-center gap-2">
         {[1, 2, 3, 4].map((s) => (
           <div key={s} className="flex items-center gap-2">
@@ -150,19 +188,21 @@ function CreatePageInner() {
               onClick={() => {
                 if (s < step) setStep(s);
               }}
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-all ${
+              className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all ${
                 s === step
-                  ? "bg-amber-200 text-stone-950"
+                  ? "bg-amber-200 text-stone-950 shadow-lg shadow-amber-200/20"
                   : s < step
                     ? "bg-amber-200/20 text-amber-200 cursor-pointer hover:bg-amber-200/30"
                     : "bg-stone-800 text-stone-500"
               }`}
             >
-              {s}
+              {s < step ? <Check className="h-5 w-5" /> : s}
             </button>
             {s < 4 && (
               <div
-                className={`h-px w-8 sm:w-16 ${s < step ? "bg-amber-200/30" : "bg-stone-800"}`}
+                className={`h-0.5 w-8 sm:w-16 transition-colors ${
+                  s < step ? "bg-amber-200/50" : "bg-stone-800"
+                }`}
               />
             )}
           </div>
@@ -171,7 +211,7 @@ function CreatePageInner() {
 
       <div className="mt-12 grid gap-12 lg:grid-cols-2">
         {/* Left: Form */}
-        <div>
+        <div className="space-y-8">
           {/* Step 1: Product Type */}
           {step === 1 && (
             <div className="animate-fade-up">
@@ -188,16 +228,36 @@ function CreatePageInner() {
                       setWaveform(null);
                       setAudioFile(null);
                     }}
-                    className={`w-full rounded-xl border p-6 text-left transition-all ${
+                    className={`group w-full rounded-xl border p-6 text-left transition-all hover:scale-[1.02] ${
                       productType === pt.key
                         ? "border-amber-200/50 bg-amber-200/5"
                         : "border-stone-800 hover:border-stone-700 hover:bg-stone-900/50"
                     }`}
                   >
-                    <p className="font-serif text-lg">{pt.label}</p>
-                    <p className="mt-1 text-sm text-stone-500">
-                      {pt.description}
-                    </p>
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
+                          productType === pt.key
+                            ? "bg-amber-200/20 text-amber-200"
+                            : "bg-stone-800 text-stone-500 group-hover:text-stone-300"
+                        }`}
+                      >
+                        {pt.icon}
+                      </div>
+                      <div>
+                        <p className="font-serif text-lg">{pt.label}</p>
+                        <p className="mt-1 text-sm text-stone-500">
+                          {pt.description}
+                        </p>
+                      </div>
+                      <ChevronRight
+                        className={`ml-auto h-5 w-5 transition-all ${
+                          productType === pt.key
+                            ? "text-amber-200 translate-x-1"
+                            : "text-stone-600 group-hover:text-stone-400"
+                        }`}
+                      />
+                    </div>
                   </button>
                 ))}
               </div>
@@ -207,43 +267,61 @@ function CreatePageInner() {
           {/* Step 2: Design Input */}
           {step === 2 && (
             <div className="animate-fade-up">
-              <h2 className="font-serif text-2xl">
-                Upload Your Sound
-              </h2>
+              <h2 className="font-serif text-2xl">Upload Your Sound</h2>
+              <p className="mt-2 text-sm text-stone-500">
+                Upload any audio file—voice memos, songs, or recordings work
+                perfectly.
+              </p>
 
               <div className="mt-8">
-                <div>
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-700 p-12 transition-colors hover:border-amber-200/30"
-                  >
-                    <svg
-                      className="h-10 w-10 text-stone-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H14.25M12 2.25v12m0 0l-3-3m3 3l3-3"
-                      />
-                    </svg>
-                    <p className="mt-4 text-sm text-stone-400">
-                      {audioFile
-                        ? audioFile.name
-                        : "Click to upload audio (MP3, WAV, M4A)"}
-                    </p>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleAudioUpload}
-                    className="hidden"
-                  />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-all ${
+                    audioFile
+                      ? "border-amber-200/50 bg-amber-200/5"
+                      : "border-stone-700 hover:border-amber-200/30 hover:bg-stone-900/30"
+                  }`}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-10 w-10 animate-spin text-amber-200" />
+                      <p className="mt-4 text-sm text-stone-400">
+                        Processing your audio...
+                      </p>
+                    </>
+                  ) : audioFile ? (
+                    <>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-200/20">
+                        <Volume2 className="h-6 w-6 text-amber-200" />
+                      </div>
+                      <p className="mt-4 text-sm font-medium text-amber-200">
+                        {audioFile.name}
+                      </p>
+                      <p className="mt-1 text-xs text-stone-500">
+                        Click to change file
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-stone-800 transition-colors group-hover:bg-stone-700">
+                        <Upload className="h-6 w-6 text-stone-500 transition-colors group-hover:text-stone-400" />
+                      </div>
+                      <p className="mt-4 text-sm text-stone-400">
+                        Click to upload audio
+                      </p>
+                      <p className="mt-1 text-xs text-stone-600">
+                        MP3, WAV, M4A supported
+                      </p>
+                    </>
+                  )}
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleAudioUpload}
+                  className="hidden"
+                />
               </div>
 
               <div className="mt-8 flex gap-4">
@@ -263,9 +341,11 @@ function CreatePageInner() {
                       );
                     }
                   }}
-                  className="rounded-lg bg-amber-200 px-6 py-2.5 text-sm font-medium text-stone-950 transition-colors hover:bg-amber-300"
+                  disabled={!waveform}
+                  className="flex items-center gap-2 rounded-lg bg-amber-200 px-6 py-2.5 text-sm font-medium text-stone-950 transition-all hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -275,6 +355,10 @@ function CreatePageInner() {
           {step === 3 && (
             <div className="animate-fade-up">
               <h2 className="font-serif text-2xl">Choose Your Material</h2>
+              <p className="mt-2 text-sm text-stone-500">
+                Each material brings its own character to your piece.
+              </p>
+
               <div className="mt-8 grid grid-cols-2 gap-4">
                 {(
                   Object.entries(MATERIALS) as [
@@ -285,16 +369,32 @@ function CreatePageInner() {
                   <button
                     key={key}
                     onClick={() => setMaterial(key)}
-                    className={`rounded-xl border p-6 text-left transition-all ${
+                    className={`group relative rounded-xl border p-6 text-left transition-all hover:scale-[1.02] ${
                       material === key
                         ? "border-amber-200/50 bg-amber-200/5"
                         : "border-stone-800 hover:border-stone-700"
                     }`}
                   >
-                    <p className="font-serif text-base">{mat.name}</p>
-                    <p className="mt-1 text-lg font-medium text-amber-200">
-                      ${(mat.price / 100).toFixed(0)}
-                    </p>
+                    {/* Material color indicator */}
+                    <div
+                      className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-gradient-to-b ${getMaterialColor(key)}`}
+                    />
+
+                    <div className="pl-3">
+                      <p className="font-serif text-base">{mat.name}</p>
+                      <p className="mt-1 text-lg font-medium text-amber-200">
+                        ${(mat.price / 100).toFixed(0)}
+                      </p>
+                      <p className="mt-2 text-xs text-stone-500 line-clamp-2">
+                        {mat.description}
+                      </p>
+                    </div>
+
+                    {material === key && (
+                      <div className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-amber-200/20">
+                        <Check className="h-4 w-4 text-amber-200" />
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -314,9 +414,10 @@ function CreatePageInner() {
                       setError("Please select a material.");
                     }
                   }}
-                  className="rounded-lg bg-amber-200 px-6 py-2.5 text-sm font-medium text-stone-950 transition-colors hover:bg-amber-300"
+                  className="flex items-center gap-2 rounded-lg bg-amber-200 px-6 py-2.5 text-sm font-medium text-stone-950 transition-colors hover:bg-amber-300"
                 >
                   Continue
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -326,6 +427,9 @@ function CreatePageInner() {
           {step === 4 && (
             <div className="animate-fade-up">
               <h2 className="font-serif text-2xl">Choose Jewelry Type</h2>
+              <p className="mt-2 text-sm text-stone-500">
+                Select the style that best suits your story.
+              </p>
 
               <div className="mt-8 space-y-4">
                 {JEWELRY_TYPES.map((jt) => (
@@ -335,20 +439,32 @@ function CreatePageInner() {
                       setJewelryType(jt.key);
                       setSize(jt.sizes[Math.floor(jt.sizes.length / 2)]);
                     }}
-                    className={`w-full rounded-xl border p-5 text-left transition-all ${
+                    className={`group w-full rounded-xl border p-5 text-left transition-all hover:scale-[1.02] ${
                       jewelryType === jt.key
                         ? "border-amber-200/50 bg-amber-200/5"
                         : "border-stone-800 hover:border-stone-700"
                     }`}
                   >
-                    <p className="font-serif text-base">{jt.label}</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-serif text-base">{jt.label}</p>
+                        <p className="text-xs text-stone-500">
+                          {jt.description}
+                        </p>
+                      </div>
+                      {jewelryType === jt.key && (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-200/20">
+                          <Check className="h-4 w-4 text-amber-200" />
+                        </div>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>
 
               {selectedJewelry && (
                 <div className="mt-6">
-                  <label className="mb-2 block text-sm text-stone-400">
+                  <label className="mb-3 block text-sm font-medium text-stone-300">
                     Size
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -369,7 +485,7 @@ function CreatePageInner() {
                 </div>
               )}
 
-              <div className="mt-6">
+              <div className="mt-8">
                 <label className="mb-2 block text-sm text-stone-400">
                   Email for order confirmation
                 </label>
@@ -378,30 +494,32 @@ function CreatePageInner() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full rounded-lg border border-stone-700 bg-stone-900 px-4 py-3 text-stone-100 placeholder-stone-600 focus:border-amber-200/50 focus:outline-none"
+                  className="w-full rounded-lg border border-stone-700 bg-stone-900 px-4 py-3 text-stone-100 placeholder-stone-600 focus:border-amber-200/50 focus:outline-none transition-colors"
                 />
               </div>
 
               {selectedMaterial && (
-                <div className="mt-8 rounded-xl border border-stone-800 bg-stone-900/50 p-6">
+                <SpotlightCard className="mt-8">
                   <h3 className="text-sm font-medium uppercase tracking-wider text-stone-400">
                     Order Summary
                   </h3>
-                  <div className="mt-4 space-y-2 text-sm">
+                  <div className="mt-4 space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-stone-500">Product</span>
-                      <span className="capitalize">
+                      <span className="capitalize text-stone-300">
                         {productType} {jewelryType}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-stone-500">Material</span>
-                      <span>{selectedMaterial.name}</span>
+                      <span className="text-stone-300">
+                        {selectedMaterial.name}
+                      </span>
                     </div>
                     {size && (
                       <div className="flex justify-between">
                         <span className="text-stone-500">Size</span>
-                        <span>{size}</span>
+                        <span className="text-stone-300">{size}</span>
                       </div>
                     )}
                     <div className="mt-4 flex justify-between border-t border-stone-800 pt-4 text-base font-medium">
@@ -411,7 +529,7 @@ function CreatePageInner() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </SpotlightCard>
               )}
 
               <div className="mt-8 flex gap-4">
@@ -424,9 +542,16 @@ function CreatePageInner() {
                 <button
                   onClick={handleCheckout}
                   disabled={isLoading || !email || !jewelryType || !size}
-                  className="flex-1 rounded-lg bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition-all hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isLoading ? "Processing..." : "Proceed to Checkout"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>Proceed to Checkout</>
+                  )}
                 </button>
               </div>
             </div>
@@ -439,10 +564,10 @@ function CreatePageInner() {
           )}
         </div>
 
-        {/* Right: Live Preview */}
+        {/* Right: Live Preview - Enhanced */}
         <div className="flex flex-col items-center justify-start">
           <div className="sticky top-24 w-full">
-            <div className="rounded-2xl border border-stone-800/50 bg-stone-900/30 p-8">
+            <SpotlightCard className="p-8">
               <p className="mb-6 text-center text-xs font-medium uppercase tracking-wider text-stone-500">
                 Live Preview
               </p>
@@ -451,17 +576,17 @@ function CreatePageInner() {
                 {/* Jewelry shape background */}
                 {(!jewelryType || jewelryType === "pendant") && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="h-56 w-44 rounded-b-full rounded-t-[40%] border border-stone-700/50" />
+                    <div className="h-56 w-44 rounded-b-full rounded-t-[40%] border-2 border-stone-700/50 transition-colors hover:border-stone-600" />
                   </div>
                 )}
                 {jewelryType === "bracelet" && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="h-48 w-48 rounded-full border border-stone-700/50" />
+                    <div className="h-48 w-48 rounded-full border-2 border-stone-700/50 transition-colors hover:border-stone-600" />
                   </div>
                 )}
                 {jewelryType === "ring" && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="h-44 w-44 rounded-full border-4 border-stone-700/50" />
+                    <div className="h-44 w-44 rounded-full border-4 border-stone-700/50 transition-colors hover:border-stone-600" />
                   </div>
                 )}
 
@@ -470,7 +595,7 @@ function CreatePageInner() {
                   <svg
                     viewBox="0 0 200 80"
                     preserveAspectRatio="xMidYMid meet"
-                    className="relative z-10 w-40 h-16 animate-shimmer text-amber-200"
+                    className="relative z-10 h-16 w-40 animate-shimmer text-amber-200"
                   >
                     <path
                       d={svgPath}
@@ -481,18 +606,57 @@ function CreatePageInner() {
                     />
                   </svg>
                 ) : (
-                  <p className="relative z-10 text-center text-xs text-stone-600">
-                    Upload audio to see your waveform
-                  </p>
+                  <div className="relative z-10 text-center">
+                    <Volume2 className="mx-auto h-8 w-8 text-stone-700" />
+                    <p className="mt-2 text-xs text-stone-600">
+                      Upload audio to see
+                      <br />
+                      your waveform
+                    </p>
+                  </div>
                 )}
               </div>
 
               {/* Material indicator */}
               {selectedMaterial && (
-                <p className="mt-4 text-center text-xs text-stone-500">
-                  {selectedMaterial.name} finish
-                </p>
+                <div className="mt-6 text-center">
+                  <p className="text-xs text-stone-500">Material</p>
+                  <p className="mt-1 text-sm font-medium text-amber-200">
+                    {selectedMaterial.name}
+                  </p>
+                </div>
               )}
+
+              {/* Jewelry type indicator */}
+              {selectedJewelry && (
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-stone-500">Style</p>
+                  <p className="mt-1 text-sm font-medium text-stone-300">
+                    {selectedJewelry.label}
+                  </p>
+                </div>
+              )}
+            </SpotlightCard>
+
+            {/* Tips card */}
+            <div className="mt-6 rounded-xl border border-stone-800/50 bg-stone-900/20 p-6">
+              <p className="text-xs font-medium uppercase tracking-wider text-stone-500">
+                Tips for best results
+              </p>
+              <ul className="mt-3 space-y-2 text-xs text-stone-600">
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-200/60">•</span>
+                  <span>Clear recordings work best</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-200/60">•</span>
+                  <span>2-10 seconds is the sweet spot</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-200/60">•</span>
+                  <span>Voices and music both work great</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -506,7 +670,10 @@ export default function CreatePage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center">
-          <p className="text-stone-500">Loading...</p>
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-amber-200" />
+            <p className="mt-4 text-stone-500">Loading...</p>
+          </div>
         </div>
       }
     >

@@ -1,0 +1,10 @@
+export { HeroParticles } from "./hero-particles";
+export { SpotlightCard } from "./spotlight-card";
+export { FAQAccordion } from "./faq-accordion";
+export { PricingCard } from "./pricing-card";
+export { BentoGrid, BentoItem } from "./bento-grid";
+export { TestimonialCard } from "./testimonial-card";
+export { TrustBadges, TrustBadge } from "./trust-badges";
+export { FeatureHighlight, FeatureHighlights } from "./feature-highlight";
+export { CTASection } from "./cta-section";
+export { GradientText } from "./gradient-text";
