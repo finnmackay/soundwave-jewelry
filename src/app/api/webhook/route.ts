@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabase } from "@/lib/supabase";
+import { submitToProtoLabs } from "@/lib/protolabs";
 import Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
@@ -58,28 +59,32 @@ export async function POST(request: NextRequest) {
 
       if (updateError) {
         console.error("Failed to update order status:", updateError);
-        // If no order exists yet (e.g., DB insert failed at checkout),
-        // create one from session metadata
-        if (session.metadata && session.customer_email) {
-          const { error: insertError } = await getSupabase().from("orders").insert({
-            email: session.customer_email,
-            product_type: session.metadata.product_type,
-            product_data: {
-              jewelry_type: session.metadata.jewelry_type,
-              size: session.metadata.size,
-            },
-            material: session.metadata.material,
-            price: session.amount_total,
-            stripe_session_id: session.id,
-            status: "paid",
-            audio_url: null,
-            waveform_svg: null,
-            shipping_address: shippingAddress,
-          });
+      }
 
-          if (insertError) {
-            console.error("Failed to create order from webhook:", insertError);
-          }
+      // Get the full order details for Proto Labs submission
+      const { data: order } = await getSupabase()
+        .from("orders")
+        .select("id, email, product_type, material, waveform_svg")
+        .eq("stripe_session_id", session.id)
+        .single();
+
+      // Submit to Proto Labs for manufacturing
+      if (order && shippingAddress) {
+        console.log("Submitting order to Proto Labs:", order.id);
+        
+        const protoResult = await submitToProtoLabs({
+          orderId: order.id,
+          email: order.email,
+          shippingAddress: shippingAddress as any,
+          productType: order.product_type,
+          material: order.material,
+          waveformSvg: order.waveform_svg,
+        });
+
+        if (protoResult.success) {
+          console.log("Proto Labs order created:", protoResult.protoLabsOrderId);
+        } else {
+          console.error("Proto Labs submission failed:", protoResult.error);
         }
       }
 
