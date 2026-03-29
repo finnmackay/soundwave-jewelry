@@ -17,10 +17,10 @@ export const stripe = typeof process !== 'undefined' && process.env.STRIPE_SECRE
   : (null as unknown as Stripe)
 
 export const MATERIALS = {
-  'stainless-steel': { name: 'Stainless Steel', price: 4900, currency: 'usd' },
-  'sterling-silver': { name: 'Sterling Silver', price: 7900, currency: 'usd' },
-  'brass': { name: 'Brass', price: 5900, currency: 'usd' },
-  'bronze': { name: 'Bronze', price: 6900, currency: 'usd' },
+  'stainless-steel': { name: 'Stainless Steel', price: 4900, currency: 'usd', description: 'Durable and hypoallergenic' },
+  'sterling-silver': { name: 'Sterling Silver', price: 7900, currency: 'usd', description: 'Classic precious metal' },
+  'brass': { name: 'Brass', price: 5900, currency: 'usd', description: 'Warm vintage finish' },
+  'bronze': { name: 'Bronze', price: 6900, currency: 'usd', description: 'Rich earthy tones' },
 } as const
 
 export type MaterialKey = keyof typeof MATERIALS
